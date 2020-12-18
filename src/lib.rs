@@ -1,29 +1,31 @@
+pub mod utils;
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn parse_number() {
-        assert_eq!(Number::new("123"), Number(123));
+        assert_eq!(Number::new("123"), ("", Number(123)));
     }
 
     #[test]
     fn parse_add_op() {
-        assert_eq!(Op::new("+"), Op::Add);
+        assert_eq!(Op::new("+"), ("", Op::Add));
     }
 
     #[test]
     fn parse_sub_op() {
-        assert_eq!(Op::new("-"), Op::Sub);
+        assert_eq!(Op::new("-"), ("", Op::Sub));
     }
 
     #[test]
     fn parse_mul_op() {
-        assert_eq!(Op::new("*"), Op::Mul);
+        assert_eq!(Op::new("*"), ("", Op::Mul));
     }
 
     #[test]
     fn parse_div_op() {
-        assert_eq!(Op::new("/"), Op::Div);
+        assert_eq!(Op::new("/"), ("", Op::Div));
     }
     #[test]
     #[should_panic(expected = "bad operator")]
@@ -33,12 +35,31 @@ mod tests {
 
     #[test]
     fn parse_one_plus_two() {
-        assert_eq!(Expr::new("1+2"),
-            Expr{
-                lhs: Number(1),
-                op: Op::Add,
-                rhs: Number(2),
-            }
+        assert_eq!(
+            Expr::new("1+2"),
+            (
+                "",
+                Expr {
+                    lhs: Number(1),
+                    op: Op::Add,
+                    rhs: Number(2),
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn parse_expr_with_whitespace() {
+        assert_eq!(
+            Expr::new("2 * 2"),
+            (
+                "",
+                Expr {
+                    lhs: Number(2),
+                    rhs: Number(2),
+                    op: Op::Mul,
+                },
+            )
         );
     }
 }
@@ -47,29 +68,32 @@ mod tests {
 pub struct Number(pub i32);
 
 impl Number {
-    pub fn new(s: &str) -> Self {
-        Self(s.parse().unwrap())
+    pub fn new(s: &str) -> (&str, Self) {
+        let (s, digits) = utils::extract_digits(s);
+        let digits = digits.parse().unwrap();
+        (s, Self(digits))
     }
 }
-
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Op {
     Add,
     Sub,
     Mul,
-    Div
+    Div,
 }
 
 impl Op {
-    pub fn new(s: &str) -> Self {
-        match s {
+    pub fn new(s: &str) -> (&str, Self) {
+        let (s, op) = utils::extract_op(s);
+        let op = match op {
             "+" => Self::Add,
             "-" => Self::Sub,
             "*" => Self::Mul,
             "/" => Self::Div,
-            _ => panic!("bad operator")
-        }
+            _ => panic!("bad operator"),
+        };
+        (s, op)
     }
 }
 
@@ -81,7 +105,16 @@ pub struct Expr {
 }
 
 impl Expr {
-    pub fn new(s: &str) -> Self {
+    pub fn new(s: &str) -> (&str, Self) {
+        let (s, lhs) = Number::new(s);
+        let (s, _) = utils::extract_whitespace(s);
 
+        let (s, op) = Op::new(s);
+        let (s, _) = utils::extract_whitespace(s);
+        
+        let (s, rhs) = Number::new(s);
+
+        let expr = Self { lhs, rhs, op };
+        (s, expr)
     }
 }
