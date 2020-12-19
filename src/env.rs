@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use crate::val::Val;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Default)]
 pub(crate) struct Env {
-    bindings: HashMap<String, Val>
+    bindings: HashMap<String, Val>,
 }
 
 impl Env {

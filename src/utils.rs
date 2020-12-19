@@ -1,4 +1,4 @@
-pub (crate) fn take_while(accept: impl Fn(char) -> bool, s: &str) -> (&str, &str) {
+pub(crate) fn take_while(accept: impl Fn(char) -> bool, s: &str) -> (&str, &str) {
     let end = s
         .char_indices()
         .find_map(|(idx, c)| if accept(c) { None } else { Some(idx) })
@@ -9,8 +9,20 @@ pub (crate) fn take_while(accept: impl Fn(char) -> bool, s: &str) -> (&str, &str
     (remainder, extracted)
 }
 
-pub(crate) fn extract_digits(s: &str) -> (&str, &str) {
-    take_while(|c| c.is_ascii_digit(), s)
+pub(crate) fn take_while1(
+    accept: impl Fn(char) -> bool,
+    s: &str,
+    error_message: String,
+) -> Result<(&str, &str), String> {
+    let (remainder, extracted) = take_while(accept, s);
+    match extracted.len() {
+        0 => Err(error_message),
+        _ => Ok((remainder, extracted)),
+    }
+}
+
+pub(crate) fn extract_digits(s: &str) -> Result<(&str, &str), String> {
+    take_while1(|c| c.is_ascii_digit(), s, "expected digits".to_owned())
 }
 
 pub(crate) fn extract_op(s: &str) -> (&str, &str) {
@@ -24,26 +36,30 @@ pub(crate) fn extract_whitespace(s: &str) -> (&str, &str) {
     take_while(|c| c == ' ', s)
 }
 
-pub(crate) fn extract_ident(s: &str) -> (&str, &str) {
+pub(crate) fn extract_whitespace1(s: &str) -> Result<(&str, &str), String> {
+    take_while1(|c| c == ' ', s, "expected a space".to_owned())
+}
+
+pub(crate) fn extract_ident(s: &str) -> Result<(&str, &str), String> {
     let input_starts_with_alphabetic = s
         .chars()
         .next()
         .map(|c| c.is_ascii_alphabetic())
         .unwrap_or_else(|| false);
-    
+
     if input_starts_with_alphabetic {
-        take_while(|c| c.is_ascii_alphanumeric(), s)
+        Ok(take_while(|c| c.is_ascii_alphanumeric(), s))
     } else {
-        (s, "")
+        Err("expected identifier".to_owned())
     }
 }
 
-pub(crate) fn tag<'a, 'b>(starting_text: &'a str, s: &'b str) -> &'b str {
+pub(crate) fn tag<'a, 'b>(starting_text: &'a str, s: &'b str) -> Result<&'b str, String> {
     if s.starts_with(starting_text) {
         let len = starting_text.len();
-        &s[len..]
+        Ok(&s[len..])
     } else {
-        panic!("expected {}", starting_text);
+        Err(format!("expected {}", starting_text))
     }
 }
 
@@ -52,22 +68,22 @@ mod tests {
     use super::*;
     #[test]
     fn extarct_one_digit() {
-        assert_eq!(extract_digits("1+2"), ("+2", "1"));
+        assert_eq!(extract_digits("1+2"), Ok(("+2", "1")));
     }
 
     #[test]
     fn extract_multiple_digits() {
-        assert_eq!(extract_digits("11+2"), ("+2", "11"));
+        assert_eq!(extract_digits("11+2"), Ok(("+2", "11")));
     }
 
     #[test]
     fn extract_empty_digits() {
-        assert_eq!(extract_digits(""), ("", ""));
+        assert_eq!(extract_digits(""), Err("expected digits".to_owned()));
     }
 
     #[test]
     fn extract_digits_without_remainder() {
-        assert_eq!(extract_digits("100"), ("", "100"));
+        assert_eq!(extract_digits("100"), Ok(("", "100")));
     }
 
     #[test]
@@ -96,12 +112,28 @@ mod tests {
     }
 
     #[test]
+    fn do_not_extract_space1_when_input_does_not_starts_with_spaces() {
+        assert_eq!(
+            extract_whitespace1("123"),
+            Err("expected a space".to_owned())
+        )
+    }
+
+    #[test]
     fn cannot_extract_ident_beginning_with_number() {
-        assert_eq!(extract_ident("123abc"), ("123abc", ""));
+        assert_eq!(
+            extract_ident("123abc"),
+            Err("expected identifier".to_owned())
+        );
+    }
+
+    #[test]
+    fn extract_alphanumeric_ident() {
+        assert_eq!(extract_ident("foobar()"), Ok(("()", "foobar")));
     }
 
     #[test]
     fn tag_word() {
-        assert_eq!(tag("let", "let a"), " a");
+        assert_eq!(tag("let", "let a"), Ok(" a"));
     }
 }
