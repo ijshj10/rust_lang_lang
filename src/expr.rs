@@ -1,7 +1,15 @@
+use binding_usage::BindingUsage;
+use block::Block;
+
 use crate::{utils, val::Val};
+pub mod binding_usage;
+pub mod block;
 
 #[cfg(test)]
 mod tests {
+    use binding_usage::BindingUsage;
+    use crate::stmt::Stmt;
+
     use super::*;
     #[test]
     fn parse_number() {
@@ -118,6 +126,32 @@ mod tests {
     fn parse_number_as_expr() {
         assert_eq!(Expr::new("3"), Ok(("", Expr::Number(Number(3)))));
     }
+
+    #[test]
+    fn parse_binding_usage() {
+        assert_eq!(
+            Expr::new("bar"),
+            Ok((
+                "",
+                Expr::BindingUsage(BindingUsage {
+                    name: "bar".to_owned()
+                })
+            ))
+        )
+    }
+
+    #[test]
+    fn parse_block() {
+        assert_eq!(
+            Expr::new("{ 200 }"),
+            Ok((
+                "",
+                Expr::Block(Block {
+                    stmts: vec![Stmt::Expr(Expr::Number(Number(200)))],
+                }),
+            )),
+        );
+    }
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -152,11 +186,26 @@ impl Op {
 pub enum Expr {
     Number(Number),
     Operation { lhs: Number, rhs: Number, op: Op },
+    BindingUsage(BindingUsage),
+    Block(Block),
 }
 
 impl Expr {
     pub fn new(s: &str) -> Result<(&str, Self), String> {
-        Self::new_operation(s).or_else(|_| Self::new_number(s))
+        Self::new_block(s)
+            .or_else(|_| Self::new_binding_usage(s))
+            .or_else(|_| Self::new_operation(s))
+            .or_else(|_| Self::new_number(s))
+    }
+
+    pub fn new_block(s: &str) -> Result<(&str, Self), String> {
+        Block::new(s)
+            .map(|(s, block)| (s, Self::Block(block)))
+    }
+
+    pub fn new_binding_usage(s: &str) -> Result<(&str, Self), String> {
+        BindingUsage::new(s)
+            .map(|(s, binding_usage)| (s, Self::BindingUsage(binding_usage)))
     }
     pub fn new_operation(s: &str) -> Result<(&str, Self), String> {
         let (s, lhs) = Number::new(s)?;
@@ -190,7 +239,13 @@ impl Expr {
                 };
 
                 Val::Number(res)
-            }
+            },
+            
+            Self::BindingUsage(binding_usage) => {
+                Val::Number(2)
+            },
+            
+            _ => todo!(),
         }
     }
 }

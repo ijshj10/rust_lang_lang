@@ -32,12 +32,14 @@ pub(crate) fn extract_op(s: &str) -> (&str, &str) {
     }
 }
 
+const WHITESPACE: &[char] = &[' ', '\n'];
+
 pub(crate) fn extract_whitespace(s: &str) -> (&str, &str) {
-    take_while(|c| c == ' ', s)
+    take_while(|c| WHITESPACE.contains(&c), s)
 }
 
 pub(crate) fn extract_whitespace1(s: &str) -> Result<(&str, &str), String> {
-    take_while1(|c| c == ' ', s, "expected a space".to_owned())
+    take_while1(|c| WHITESPACE.contains(&c), s, "expected whitespace".to_owned())
 }
 
 pub(crate) fn extract_ident(s: &str) -> Result<(&str, &str), String> {
@@ -115,7 +117,7 @@ mod tests {
     fn do_not_extract_space1_when_input_does_not_starts_with_spaces() {
         assert_eq!(
             extract_whitespace1("123"),
-            Err("expected a space".to_owned())
+            Err("expected whitespace".to_owned())
         )
     }
 

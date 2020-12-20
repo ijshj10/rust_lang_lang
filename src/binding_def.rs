@@ -2,8 +2,8 @@ use crate::env::Env;
 use crate::{expr::Expr, utils};
 #[derive(Debug, PartialEq)]
 pub struct BindingDef {
-    name: String,
-    val: Expr,
+    pub name: String,
+    pub val: Expr,
 }
 
 impl BindingDef {
@@ -56,7 +56,7 @@ mod tests {
     fn cannot_parse_binding_def_without_space_after_let() {
         assert_eq!(
             BindingDef::new("letaaa=1+2"),
-            Err("expected a space".to_owned())
+            Err("expected whitespace".to_owned())
         );
     }
 }
