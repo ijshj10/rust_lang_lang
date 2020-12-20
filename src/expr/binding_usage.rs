@@ -1,5 +1,5 @@
-use crate::utils;
 use crate::env::Env;
+use crate::utils;
 use crate::val::Val;
 
 #[cfg(test)]
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn eval_non_existing_binding_usage() {
-        let mut env = Env::default();
+        let env = Env::default();
 
         assert_eq! {
             BindingUsage {
@@ -50,9 +50,14 @@ pub struct BindingUsage {
 }
 
 impl BindingUsage {
-    pub fn new(s: &str) -> Result<(&str, Self), String> {
+    pub(crate) fn new(s: &str) -> Result<(&str, Self), String> {
         let (s, name) = utils::extract_ident(s)?;
-        Ok((s, BindingUsage{ name: name.to_owned() }))
+        Ok((
+            s,
+            BindingUsage {
+                name: name.to_owned(),
+            },
+        ))
     }
 
     pub(crate) fn eval(&self, env: &Env) -> Result<Val, String> {

@@ -1,3 +1,4 @@
+use crate::env::Env;
 use binding_usage::BindingUsage;
 use block::Block;
 
@@ -7,8 +8,8 @@ pub mod block;
 
 #[cfg(test)]
 mod tests {
-    use binding_usage::BindingUsage;
     use crate::stmt::Stmt;
+    use binding_usage::BindingUsage;
 
     use super::*;
     #[test]
@@ -78,8 +79,8 @@ mod tests {
                 rhs: Number(10),
                 op: Op::Add,
             }
-            .eval(),
-            Val::Number(20)
+            .eval(&Env::default()),
+            Ok(Val::Number(20))
         );
     }
 
@@ -91,8 +92,8 @@ mod tests {
                 rhs: Number(5),
                 op: Op::Sub,
             }
-            .eval(),
-            Val::Number(-4)
+            .eval(&Env::default()),
+            Ok(Val::Number(-4))
         );
     }
 
@@ -104,8 +105,8 @@ mod tests {
                 rhs: Number(4),
                 op: Op::Mul,
             }
-            .eval(),
-            Val::Number(20)
+            .eval(&Env::default()),
+            Ok(Val::Number(20))
         );
     }
 
@@ -117,8 +118,8 @@ mod tests {
                 rhs: Number(7),
                 op: Op::Div,
             }
-            .eval(),
-            Val::Number(208)
+            .eval(&Env::default()),
+            Ok(Val::Number(208))
         );
     }
 
@@ -199,13 +200,11 @@ impl Expr {
     }
 
     pub fn new_block(s: &str) -> Result<(&str, Self), String> {
-        Block::new(s)
-            .map(|(s, block)| (s, Self::Block(block)))
+        Block::new(s).map(|(s, block)| (s, Self::Block(block)))
     }
 
     pub fn new_binding_usage(s: &str) -> Result<(&str, Self), String> {
-        BindingUsage::new(s)
-            .map(|(s, binding_usage)| (s, Self::BindingUsage(binding_usage)))
+        BindingUsage::new(s).map(|(s, binding_usage)| (s, Self::BindingUsage(binding_usage)))
     }
     pub fn new_operation(s: &str) -> Result<(&str, Self), String> {
         let (s, lhs) = Number::new(s)?;
@@ -224,9 +223,9 @@ impl Expr {
         Number::new(s).map(|(s, number)| (s, Self::Number(number)))
     }
 
-    pub(crate) fn eval(&self) -> Val {
+    pub(crate) fn eval(&self, env: &Env) -> Result<Val, String> {
         match self {
-            Self::Number(Number(number)) => Val::Number(*number),
+            Self::Number(Number(number)) => Ok(Val::Number(*number)),
             Self::Operation { lhs, rhs, op } => {
                 let Number(lhs) = lhs;
                 let Number(rhs) = rhs;
@@ -238,14 +237,12 @@ impl Expr {
                     Op::Div => lhs / rhs,
                 };
 
-                Val::Number(res)
-            },
-            
-            Self::BindingUsage(binding_usage) => {
-                Val::Number(2)
-            },
-            
-            _ => todo!(),
+                Ok(Val::Number(res))
+            }
+
+            Self::BindingUsage(binding_usage) => binding_usage.eval(&env),
+
+            Self::Block(block) => block.eval(&env),
         }
     }
 }

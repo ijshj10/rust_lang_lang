@@ -39,7 +39,11 @@ pub(crate) fn extract_whitespace(s: &str) -> (&str, &str) {
 }
 
 pub(crate) fn extract_whitespace1(s: &str) -> Result<(&str, &str), String> {
-    take_while1(|c| WHITESPACE.contains(&c), s, "expected whitespace".to_owned())
+    take_while1(
+        |c| WHITESPACE.contains(&c),
+        s,
+        "expected whitespace".to_owned(),
+    )
 }
 
 pub(crate) fn extract_ident(s: &str) -> Result<(&str, &str), String> {
