@@ -1,4 +1,5 @@
 use crate::expr::Expr;
+use crate::func_def::FuncDef;
 use crate::{binding_def::BindingDef, env::Env, val::Val};
 
 #[cfg(test)]
@@ -36,9 +37,10 @@ mod tests {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Stmt {
+pub(crate) enum Stmt {
     BindingDef(BindingDef),
     Expr(Expr),
+    FuncDef(FuncDef),
 }
 
 impl Stmt {
@@ -52,6 +54,7 @@ impl Stmt {
         match self {
             Stmt::BindingDef(binding_def) => binding_def.eval(env).map(|_| Val::Unit),
             Stmt::Expr(expr) => expr.eval(env),
+            Stmt::FuncDef(func_def) => todo!(),
         }
     }
 }

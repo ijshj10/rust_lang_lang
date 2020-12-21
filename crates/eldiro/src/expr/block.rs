@@ -5,8 +5,8 @@ use crate::stmt::Stmt;
 use crate::expr::Op;
 
 #[derive(Debug, PartialEq)]
-pub struct Block {
-    pub stmts: Vec<Stmt>,
+pub(crate) struct Block {
+    pub(crate) stmts: Vec<Stmt>,
 }
 
 impl Block {

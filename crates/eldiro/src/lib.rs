@@ -4,6 +4,7 @@ mod stmt;
 mod val;
 mod env;
 mod utils;
+mod func_def;
 
 pub use env::Env;
 pub use val::Val;
