@@ -1,5 +1,5 @@
-use crate::val::Val;
 use crate::stmt::Stmt;
+use crate::val::Val;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Default)]
@@ -11,7 +11,7 @@ pub struct Env<'parent> {
 #[derive(Debug, PartialEq, Clone)]
 enum NamedInfo {
     Binding(Val),
-    Func { params: Vec<String>, body: Stmt},
+    Func { params: Vec<String>, body: Stmt },
 }
 
 impl NamedInfo {
@@ -24,7 +24,7 @@ impl NamedInfo {
     }
 
     fn into_func(self) -> Option<(Vec<String>, Stmt)> {
-        if let Self::Func{params, body} = self {
+        if let Self::Func { params, body } = self {
             Some((params, body))
         } else {
             None
@@ -44,12 +44,8 @@ impl<'parent> Env<'parent> {
     }
 
     pub(crate) fn store_func(&mut self, name: String, params: Vec<String>, body: Stmt) {
-        self.named.insert(name, NamedInfo::Func{
-            params,
-            body
-        });
+        self.named.insert(name, NamedInfo::Func { params, body });
     }
-
 
     pub(crate) fn get_binding(&self, name: &str) -> Result<Val, String> {
         self.get_named_info(name)
@@ -63,12 +59,10 @@ impl<'parent> Env<'parent> {
             .ok_or_else(|| format!("function with name '{}' does not exist.", name))
     }
 
-    fn get_named_info(&self, name:&str) -> Option<NamedInfo> {
-        self.named.get(name)
-        .cloned()
-        .or_else(|| {
-            self.parent
-                .and_then(|parent| parent.get_named_info(name))
-        })
+    fn get_named_info(&self, name: &str) -> Option<NamedInfo> {
+        self.named
+            .get(name)
+            .cloned()
+            .or_else(|| self.parent.and_then(|parent| parent.get_named_info(name)))
     }
 }

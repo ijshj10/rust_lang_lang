@@ -4,9 +4,11 @@ use crate::val::Val;
 
 pub(crate) use binding_usage::BindingUsage;
 pub(crate) use block::Block;
+pub(crate) use func_call::FuncCall;
 
 mod binding_usage;
 mod block;
+mod func_call;
 
 #[cfg(test)]
 mod tests {
@@ -168,6 +170,48 @@ mod tests {
             Err("cannot evaluate operation whose operands are not numbers".to_owned())
         )
     }
+
+    #[test]
+    fn parse_func_call() {
+        assert_eq!(
+            Expr::new("add 1 2"),
+            Ok((
+                "",
+                Expr::FuncCall(FuncCall {
+                    callee: "add".to_owned(),
+                    params: vec![Expr::Number(Number(1)), Expr::Number(Number(2))]
+                })
+            ))
+        );
+    }
+
+    #[test]
+    fn eval_func_call() {
+        let mut env = Env::default();
+
+        env.store_func(
+            "add".to_owned(),
+            vec!["x".to_owned(), "y".to_owned()],
+            Stmt::Expr(Expr::Operation {
+                lhs: Box::new(Expr::BindingUsage(BindingUsage {
+                    name: "x".to_owned(),
+                })),
+                rhs: Box::new(Expr::BindingUsage(BindingUsage {
+                    name: "y".to_owned(),
+                })),
+                op: Op::Add,
+            }),
+        );
+
+        assert_eq!(
+            Expr::FuncCall(FuncCall {
+                callee: "add".to_owned(),
+                params: vec![Expr::Number(Number(2)), Expr::Number(Number(2))]
+            })
+            .eval(&mut env),
+            Ok(Val::Number(4))
+        );
+    }
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -206,6 +250,7 @@ pub(crate) enum Expr {
         rhs: Box<Self>,
         op: Op,
     },
+    FuncCall(FuncCall),
     BindingUsage(BindingUsage),
     Block(Block),
 }
@@ -217,17 +262,14 @@ impl Expr {
 
     fn new_non_operation(s: &str) -> Result<(&str, Self), String> {
         Self::new_number(s)
-            .or_else(|_| Self::new_binding_usage(s))
-            .or_else(|_| Self::new_block(s))
+            .or_else(|_| FuncCall::new(s).map(|(s, func_call)| (s, Self::FuncCall(func_call))))
+            .or_else(|_| {
+                BindingUsage::new(s)
+                    .map(|(s, binding_usage)| (s, Self::BindingUsage(binding_usage)))
+            })
+            .or_else(|_| Block::new(s).map(|(s, block)| (s, Self::Block(block))))
     }
 
-    pub fn new_block(s: &str) -> Result<(&str, Self), String> {
-        Block::new(s).map(|(s, block)| (s, Self::Block(block)))
-    }
-
-    pub fn new_binding_usage(s: &str) -> Result<(&str, Self), String> {
-        BindingUsage::new(s).map(|(s, binding_usage)| (s, Self::BindingUsage(binding_usage)))
-    }
     pub fn new_operation(s: &str) -> Result<(&str, Self), String> {
         let (s, lhs) = Expr::new_non_operation(s)?;
         let (s, _) = utils::extract_whitespace(s);
@@ -275,9 +317,11 @@ impl Expr {
                 Ok(Val::Number(res))
             }
 
-            Self::BindingUsage(binding_usage) => binding_usage.eval(&env),
+            Self::FuncCall(func_call) => func_call.eval(env),
 
-            Self::Block(block) => block.eval(&env),
+            Self::BindingUsage(binding_usage) => binding_usage.eval(env),
+
+            Self::Block(block) => block.eval(env),
         }
     }
 }

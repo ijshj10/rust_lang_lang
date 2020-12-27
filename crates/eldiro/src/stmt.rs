@@ -90,7 +90,7 @@ impl Stmt {
             Stmt::FuncDef(func_def) => {
                 func_def.eval(env)?;
                 Ok(Val::Unit)
-            },
+            }
         }
     }
 }

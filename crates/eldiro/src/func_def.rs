@@ -1,6 +1,6 @@
+use crate::env::Env;
 use crate::stmt::Stmt;
 use crate::utils;
-use crate::env::Env;
 
 #[cfg(test)]
 mod tests {
@@ -77,6 +77,7 @@ impl FuncDef {
 
         let (s, params) = utils::sequence(
             |s| utils::extract_ident(s).map(|(s, ident)| (s, ident.to_owned())),
+            utils::extract_whitespace,
             s,
         )?;
 
