@@ -170,8 +170,8 @@ mod tests {
                     Stmt::Expr(Expr::Number(Number(5))),
                     Stmt::Expr(Expr::Number(Number(42))),
                     Stmt::Expr(Expr::Operation {
-                        lhs: Number(5),
-                        rhs: Number(26),
+                        lhs: Box::new(Expr::Number(Number(5))),
+                        rhs: Box::new(Expr::Number(Number(26))),
                         op: Op::Mul,
                     })
                 ]

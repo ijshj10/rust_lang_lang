@@ -48,9 +48,9 @@ mod tests {
             Ok((
                 "",
                 Expr::Operation {
-                    lhs: Number(1),
+                    lhs: Box::new(Expr::Number(Number(1))),
                     op: Op::Add,
-                    rhs: Number(2),
+                    rhs: Box::new(Expr::Number(Number(2))),
                 }
             ))
         );
@@ -63,8 +63,8 @@ mod tests {
             Ok((
                 "",
                 Expr::Operation {
-                    lhs: Number(2),
-                    rhs: Number(2),
+                    lhs: Box::new(Expr::Number(Number(2))),
+                    rhs: Box::new(Expr::Number(Number(2))),
                     op: Op::Mul,
                 }
             ),)
@@ -75,8 +75,8 @@ mod tests {
     fn eval_add() {
         assert_eq!(
             Expr::Operation {
-                lhs: Number(10),
-                rhs: Number(10),
+                lhs: Box::new(Expr::Number(Number(10))),
+                rhs: Box::new(Expr::Number(Number(10))),
                 op: Op::Add,
             }
             .eval(&Env::default()),
@@ -88,8 +88,8 @@ mod tests {
     fn eval_sub() {
         assert_eq!(
             Expr::Operation {
-                lhs: Number(1),
-                rhs: Number(5),
+                lhs: Box::new(Expr::Number(Number(1))),
+                rhs: Box::new(Expr::Number(Number(5))),
                 op: Op::Sub,
             }
             .eval(&Env::default()),
@@ -101,8 +101,8 @@ mod tests {
     fn eval_mul() {
         assert_eq!(
             Expr::Operation {
-                lhs: Number(5),
-                rhs: Number(4),
+                lhs: Box::new(Expr::Number(Number(5))),
+                rhs: Box::new(Expr::Number(Number(4))),
                 op: Op::Mul,
             }
             .eval(&Env::default()),
@@ -114,8 +114,8 @@ mod tests {
     fn eval_div() {
         assert_eq!(
             Expr::Operation {
-                lhs: Number(1460),
-                rhs: Number(7),
+                lhs: Box::new(Expr::Number(Number(1460))),
+                rhs: Box::new(Expr::Number(Number(7))),
                 op: Op::Div,
             }
             .eval(&Env::default()),
@@ -153,6 +153,18 @@ mod tests {
             )),
         );
     }
+    
+    #[test]
+    fn eval_non_number_operation() {
+        assert_eq!(
+            Expr::Operation {
+                lhs: Box::new(Expr::Number(Number(10))),
+                rhs: Box::new(Expr::Block(Block { stmts: vec![] })),
+                op: Op::Add,
+            }.eval(&Env::default()),
+            Err("cannot evaluate operation whose operands are not numbers".to_owned())
+        )
+    }
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -186,17 +198,20 @@ impl Op {
 #[derive(Debug, PartialEq)]
 pub(crate) enum Expr {
     Number(Number),
-    Operation { lhs: Number, rhs: Number, op: Op },
+    Operation { lhs: Box<Self>, rhs: Box<Self>, op: Op },
     BindingUsage(BindingUsage),
     Block(Block),
 }
 
 impl Expr {
     pub fn new(s: &str) -> Result<(&str, Self), String> {
-        Self::new_block(s)
+        Self::new_operation(s).or_else(|_| Self::new_non_operation(s))
+    }
+
+    fn new_non_operation(s: &str) -> Result<(&str, Self), String> {
+        Self::new_number(s)
             .or_else(|_| Self::new_binding_usage(s))
-            .or_else(|_| Self::new_operation(s))
-            .or_else(|_| Self::new_number(s))
+            .or_else(|_| Self::new_block(s))
     }
 
     pub fn new_block(s: &str) -> Result<(&str, Self), String> {
@@ -207,15 +222,15 @@ impl Expr {
         BindingUsage::new(s).map(|(s, binding_usage)| (s, Self::BindingUsage(binding_usage)))
     }
     pub fn new_operation(s: &str) -> Result<(&str, Self), String> {
-        let (s, lhs) = Number::new(s)?;
+        let (s, lhs) = Expr::new_non_operation(s)?;
         let (s, _) = utils::extract_whitespace(s);
 
         let (s, op) = Op::new(s)?;
         let (s, _) = utils::extract_whitespace(s);
 
-        let (s, rhs) = Number::new(s)?;
+        let (s, rhs) = Expr::new_non_operation(s)?;
 
-        let expr = Self::Operation { lhs, rhs, op };
+        let expr = Self::Operation { lhs:Box::new(lhs), rhs:Box::new(rhs), op };
         Ok((s, expr))
     }
 
@@ -227,8 +242,14 @@ impl Expr {
         match self {
             Self::Number(Number(number)) => Ok(Val::Number(*number)),
             Self::Operation { lhs, rhs, op } => {
-                let Number(lhs) = lhs;
-                let Number(rhs) = rhs;
+                let lhs = lhs.eval(env)?;
+                let rhs = rhs.eval(env)?;
+
+                let (lhs, rhs) = match (lhs, rhs) {
+                    (Val::Number(lhs), Val::Number(rhs)) => (lhs, rhs),
+                    _ => return Err("cannot evaluate operation whose operands are not numbers".to_owned()),
+                };
+
 
                 let res = match op {
                     Op::Add => lhs + rhs,

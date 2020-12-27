@@ -45,8 +45,8 @@ mod tests {
                 BindingDef {
                     name: String::from("a"),
                     val: Expr::Operation {
-                        lhs: Number(10),
-                        rhs: Number(2),
+                        lhs: Box::new(Expr::Number(Number(10))),
+                        rhs: Box::new(Expr::Number(Number(2))),
                         op: Op::Div
                     }
                 }
