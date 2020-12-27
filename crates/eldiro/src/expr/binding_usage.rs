@@ -44,9 +44,9 @@ mod tests {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BindingUsage {
-    pub name: String,
+    pub(crate) name: String,
 }
 
 impl BindingUsage {
@@ -61,6 +61,6 @@ impl BindingUsage {
     }
 
     pub(crate) fn eval(&self, env: &Env) -> Result<Val, String> {
-        env.get_binding_value(&self.name)
+        env.get_binding(&self.name)
     }
 }

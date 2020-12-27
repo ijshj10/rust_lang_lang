@@ -1,10 +1,10 @@
 mod binding_def;
-mod expr;
-mod stmt;
-mod val;
 mod env;
-mod utils;
+mod expr;
 mod func_def;
+mod stmt;
+mod utils;
+mod val;
 
 pub use env::Env;
 pub use val::Val;
@@ -21,8 +21,6 @@ pub fn parse(s: &str) -> Result<Parse, String> {
 }
 
 impl Parse {
-    
-
     pub fn eval(&self, env: &mut Env) -> Result<Val, String> {
         self.0.eval(env)
     }

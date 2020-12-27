@@ -12,7 +12,7 @@ fn main() -> io::Result<()> {
         stdout.flush()?;
 
         stdin.read_line(&mut input)?;
-        
+
         match run(input.trim(), &mut env) {
             Ok(Some(val)) => writeln!(stdout, "{}", val)?,
             Ok(None) => {}
@@ -29,7 +29,7 @@ fn run(input: &str, env: &mut eldiro::Env) -> Result<Option<eldiro::Val>, String
     let evaluated = parse
         .eval(env)
         .map_err(|msg| format!("Evaluation error: {}", msg))?;
-    
+
     match evaluated {
         eldiro::Val::Unit => Ok(None),
         eldiro::Val::Number(n) => Ok(Some(evaluated)),

@@ -1,10 +1,12 @@
 use crate::env::Env;
-use binding_usage::BindingUsage;
-use block::Block;
+use crate::utils;
+use crate::val::Val;
 
-use crate::{utils, val::Val};
-pub mod binding_usage;
-pub mod block;
+pub(crate) use binding_usage::BindingUsage;
+pub(crate) use block::Block;
+
+mod binding_usage;
+mod block;
 
 #[cfg(test)]
 mod tests {
@@ -153,7 +155,7 @@ mod tests {
             )),
         );
     }
-    
+
     #[test]
     fn eval_non_number_operation() {
         assert_eq!(
@@ -161,7 +163,8 @@ mod tests {
                 lhs: Box::new(Expr::Number(Number(10))),
                 rhs: Box::new(Expr::Block(Block { stmts: vec![] })),
                 op: Op::Add,
-            }.eval(&Env::default()),
+            }
+            .eval(&Env::default()),
             Err("cannot evaluate operation whose operands are not numbers".to_owned())
         )
     }
@@ -195,10 +198,14 @@ impl Op {
             .or_else(|_| utils::tag("/", s).map(|s| (s, Self::Div)))
     }
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Expr {
     Number(Number),
-    Operation { lhs: Box<Self>, rhs: Box<Self>, op: Op },
+    Operation {
+        lhs: Box<Self>,
+        rhs: Box<Self>,
+        op: Op,
+    },
     BindingUsage(BindingUsage),
     Block(Block),
 }
@@ -230,7 +237,11 @@ impl Expr {
 
         let (s, rhs) = Expr::new_non_operation(s)?;
 
-        let expr = Self::Operation { lhs:Box::new(lhs), rhs:Box::new(rhs), op };
+        let expr = Self::Operation {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+            op,
+        };
         Ok((s, expr))
     }
 
@@ -247,9 +258,12 @@ impl Expr {
 
                 let (lhs, rhs) = match (lhs, rhs) {
                     (Val::Number(lhs), Val::Number(rhs)) => (lhs, rhs),
-                    _ => return Err("cannot evaluate operation whose operands are not numbers".to_owned()),
+                    _ => {
+                        return Err(
+                            "cannot evaluate operation whose operands are not numbers".to_owned()
+                        )
+                    }
                 };
-
 
                 let res = match op {
                     Op::Add => lhs + rhs,
