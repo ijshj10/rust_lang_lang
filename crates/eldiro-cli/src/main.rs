@@ -1,37 +1,23 @@
 use std::io::{self, Write};
 
+use eldiro::parser::{Parse, Parser};
+
 fn main() -> io::Result<()> {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     let mut stderr = io::stderr();
 
     let mut input = String::new();
-    let mut env = eldiro::Env::default();
+
     loop {
-        print!("> ");
+        write!(stdout, "→ ")?;
         stdout.flush()?;
 
         stdin.read_line(&mut input)?;
 
-        match run(input.trim(), &mut env) {
-            Ok(Some(val)) => writeln!(stdout, "{}", val)?,
-            Ok(None) => {}
-            Err(msg) => writeln!(stderr, "Parse error: {}", msg)?,
-        }
+        let parse = Parser::new(&input).parse();
+        println!("{}", parse.debug_tree());
 
         input.clear();
-    }
-}
-
-fn run(input: &str, env: &mut eldiro::Env) -> Result<Option<eldiro::Val>, String> {
-    let parse = eldiro::parse(input).map_err(|msg| format!("Parse error: {}", msg))?;
-
-    let evaluated = parse
-        .eval(env)
-        .map_err(|msg| format!("Evaluation error: {}", msg))?;
-
-    match evaluated {
-        eldiro::Val::Unit => Ok(None),
-        eldiro::Val::Number(n) => Ok(Some(evaluated)),
     }
 }
