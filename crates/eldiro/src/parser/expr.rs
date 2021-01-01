@@ -17,7 +17,7 @@ Root@0..3
     }
 
     #[test]
-    fn parse_binding_usage() {
+    fn parse_variable_ref() {
         check(
             "abc",
             expect![[r#"Root@0..3
@@ -127,8 +127,6 @@ Root@0..7
     RParen@6..7 ")""#]],
         );
     }
-
-
 }
 
 pub(super) fn expr(p: &mut Parser) {
