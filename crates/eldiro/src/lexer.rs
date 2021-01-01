@@ -2,12 +2,14 @@ use logos::Logos;
 use num_derive::{FromPrimitive, ToPrimitive};
 
 pub(crate) struct Lexer<'a> {
-    inner: logos::Lexer<'a, SyntaxKind>
+    inner: logos::Lexer<'a, SyntaxKind>,
 }
 
 impl<'a> Lexer<'a> {
     pub(crate) fn new(input: &'a str) -> Self {
-        Self { inner: SyntaxKind::lexer(input) }
+        Self {
+            inner: SyntaxKind::lexer(input),
+        }
     }
 }
 
@@ -20,7 +22,7 @@ impl<'a> Iterator for Lexer<'a> {
         Some((kind, text))
     }
 }
-#[derive(Debug,Copy, Clone, PartialEq, Logos, FromPrimitive, ToPrimitive)]
+#[derive(Debug, Copy, Clone, PartialEq, Logos, FromPrimitive, ToPrimitive)]
 pub(crate) enum SyntaxKind {
     #[regex(" +")]
     Whitespace,
@@ -31,7 +33,7 @@ pub(crate) enum SyntaxKind {
     #[token("let")]
     LetKw,
 
-    #[regex("[A-Za-z][A-Za-z0-9]+")]
+    #[regex("[A-Za-z][_A-Za-z0-9]*")]
     Ident,
 
     #[regex("[0-9]+")]
@@ -62,6 +64,8 @@ pub(crate) enum SyntaxKind {
     Error,
 
     Root,
+    BinaryExpr,
+    PrefixExpr,
 }
 
 #[cfg(test)]
@@ -88,6 +92,7 @@ mod tests {
         check("let", SyntaxKind::LetKw);
     }
 
+
     #[test]
     fn lex_alphabetic_identifier() {
         check("abcde", SyntaxKind::Ident);
@@ -95,7 +100,7 @@ mod tests {
 
     #[test]
     fn lex_alphanumeric_identifier() {
-        check("ab123cde456", SyntaxKind::Ident);
+        check("ab_123cde456", SyntaxKind::Ident);
     }
 
     #[test]
@@ -142,5 +147,4 @@ mod tests {
     fn lex_right_brace() {
         check("}", SyntaxKind::RBrace);
     }
-
 }
